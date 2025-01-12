@@ -1,7 +1,6 @@
 requests
 httpagentparser
 Crypto
-win32crypt
 os
 json
 re
