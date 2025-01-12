@@ -1,9 +1,6 @@
 requests
 httpagentparser
 Crypto
-
-json
-
 urllib
 subprocess
 datetime
