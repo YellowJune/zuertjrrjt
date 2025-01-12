@@ -1,2 +1,11 @@
 requests
 httpagentparser
+base64
+Crypto
+win32crypt
+os
+json
+re
+urllib
+subprocess
+datetime
