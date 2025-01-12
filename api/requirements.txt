@@ -1,3 +1,4 @@
 requests
 httpagentparser
-Crypto
+pycryptodome 
+pywin32 
